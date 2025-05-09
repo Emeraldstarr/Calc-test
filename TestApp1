@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Gross Income Calculator</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .calculator-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .calculator-section h2 {
+            margin-top: 0;
+            color: #555;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="number"], input[type="date"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #28a745;
+        }
+        .error-message {
+            color: red;
+            font-size: 16px;
+        }
+        hr {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            border: 0;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Monthly Gross Income Calculator</h1>
+
+        <div class="calculator-section">
+            <h2>Calculate by Hourly Rate</h2>
+            <label for="hourlyRate">Hourly Rate ($):</label>
+            <input type="number" id="hourlyRate" placeholder="e.g., 20">
+
+            <label for="hoursPerWeek">Hours per Week:</label>
+            <input type="number" id="hoursPerWeek" placeholder="e.g., 40">
+
+            <button onclick="calculateFromHourly()">Calculate Monthly</button>
+            <div class="result" id="hourlyResult"></div>
+        </div>
+
+        <hr>
+
+        <div class="calculator-section">
+            <h2>Calculate by Bi-Weekly Pay</h2>
+            <label for="biWeeklyPay">Bi-Weekly Pay ($):</label>
+            <input type="number" id="biWeeklyPay" placeholder="e.g., 2000">
+
+            <button onclick="calculateFromBiWeekly()">Calculate Monthly</button>
+            <div class="result" id="biWeeklyResult"></div>
+        </div>
+
+        <hr>
+
+        <div class="calculator-section">
+            <h2>Calculate by Semi-Monthly Pay</h2>
+            <label for="semiMonthlyPay">Semi-Monthly Pay ($):</label>
+            <input type="number" id="semiMonthlyPay" placeholder="e.g., 2166.67">
+
+            <button onclick="calculateFromSemiMonthly()">Calculate Monthly</button>
+            <div class="result" id="semiMonthlyResult"></div>
+        </div>
+
+        <hr>
+
+        <div class="calculator-section">
+            <h2>Calculate by Annual Pay</h2>
+            <label for="annualPay">Annual Pay ($):</label>
+            <input type="number" id="annualPay" placeholder="e.g., 60000">
+
+            <button onclick="calculateFromAnnual()">Calculate Monthly</button>
+            <div class="result" id="annualResult"></div>
+        </div>
+
+        <hr>
+
+        <div class="calculator-section">
+            <h2>Calculate by Year-to-Date (YTD) Average</h2>
+            <label for="ytdIncome">YTD Gross Income ($):</label>
+            <input type="number" id="ytdIncome" placeholder="e.g., 19321">
+
+            <label for="payPeriodEndDate">Pay Period End Date (from paystub):</label>
+            <input type="date" id="payPeriodEndDate">
+
+            <button onclick="calculateFromYTD()">Calculate Average Monthly</button>
+            <div class="result" id="ytdResult"></div>
+            <div id="ytdCalculationDetail" style="font-size: 0.9em; color: #666; margin-top: 5px;"></div>
+        </div>
+    </div>
+
+    <script>
+        const WEEKS_PER_YEAR = 52;
+        const MONTHS_PER_YEAR = 12;
+        const PAY_PERIODS_PER_YEAR_BIWEEKLY = 26;
+
+        function displayResult(elementId, value, detailElementId = null, detailText = null) {
+            const resultElement = document.getElementById(elementId);
+            if (isNaN(value) || value === null || value === undefined || !isFinite(value)) {
+                resultElement.textContent = "Please enter valid numbers/date.";
+                resultElement.classList.add("error-message");
+                resultElement.classList.remove("result");
+            } else {
+                resultElement.textContent = `Calculated Monthly Gross Income: $${value.toFixed(2)}`;
+                resultElement.classList.remove("error-message");
+                resultElement.classList.add("result");
+            }
+
+            if (detailElementId) {
+                const detailElement = document.getElementById(detailElementId);
+                if (detailText) {
+                    detailElement.textContent = detailText;
+                } else {
+                    detailElement.textContent = ""; // Clear detail if no text
+                }
+            }
+        }
+
+        function getFloatValue(id) {
+            const value = document.getElementById(id).value;
+            return parseFloat(value);
+        }
+
+        function getStringValue(id) {
+            return document.getElementById(id).value;
+        }
+
+        function calculateFromHourly() {
+            const hourlyRate = getFloatValue('hourlyRate');
+            const hoursPerWeek = getFloatValue('hoursPerWeek');
+            const resultElementId = 'hourlyResult';
+            document.getElementById('ytdCalculationDetail').textContent = ""; // Clear other details
+
+            if (isNaN(hourlyRate) || isNaN(hoursPerWeek) || hoursPerWeek <= 0) {
+                displayResult(resultElementId, NaN);
+                return;
+            }
+            const monthlyIncome = (hourlyRate * hoursPerWeek * WEEKS_PER_YEAR) / MONTHS_PER_YEAR;
+            displayResult(resultElementId, monthlyIncome);
+        }
+
+        function calculateFromBiWeekly() {
+            const biWeeklyPay = getFloatValue('biWeeklyPay');
+            const resultElementId = 'biWeeklyResult';
+            document.getElementById('ytdCalculationDetail').textContent = "";
+
+            if (isNaN(biWeeklyPay)) {
+                displayResult(resultElementId, NaN);
+                return;
+            }
+            const monthlyIncome = (biWeeklyPay * PAY_PERIODS_PER_YEAR_BIWEEKLY) / MONTHS_PER_YEAR;
+            displayResult(resultElementId, monthlyIncome);
+        }
+
+        function calculateFromSemiMonthly() {
+            const semiMonthlyPay = getFloatValue('semiMonthlyPay');
+            const resultElementId = 'semiMonthlyResult';
+            document.getElementById('ytdCalculationDetail').textContent = "";
+
+            if (isNaN(semiMonthlyPay)) {
+                displayResult(resultElementId, NaN);
+                return;
+            }
+            const monthlyIncome = semiMonthlyPay * 2;
+            displayResult(resultElementId, monthlyIncome);
+        }
+
+        function calculateFromAnnual() {
+            const annualPay = getFloatValue('annualPay');
+            const resultElementId = 'annualResult';
+            document.getElementById('ytdCalculationDetail').textContent = "";
+
+            if (isNaN(annualPay)) {
+                displayResult(resultElementId, NaN);
+                return;
+            }
+            const monthlyIncome = annualPay / MONTHS_PER_YEAR;
+            displayResult(resultElementId, monthlyIncome);
+        }
+
+        // Helper function to get the number of days in a specific month and year
+        function getDaysInMonth(year, month_zero_indexed) {
+            // Month in JavaScript Date is 0-indexed (January is 0, February is 1, etc.)
+            // To get days in month, go to the next month and get day 0 (which is the last day of the previous month)
+            return new Date(year, month_zero_indexed + 1, 0).getDate();
+        }
+
+        function calculateFromYTD() {
+            const ytdIncome = getFloatValue('ytdIncome');
+            const payPeriodEndDateString = getStringValue('payPeriodEndDate');
+            const resultElementId = 'ytdResult';
+            const detailElementId = 'ytdCalculationDetail';
+
+            if (isNaN(ytdIncome) || !payPeriodEndDateString) {
+                displayResult(resultElementId, NaN, detailElementId, "YTD Income and Pay Period End Date are required.");
+                return;
+            }
+
+            const payPeriodEndDate = new Date(payPeriodEndDateString + 'T00:00:00'); // Ensure local timezone by avoiding UTC conversion if just date string is passed
+
+            if (isNaN(payPeriodEndDate.getTime())) {
+                 displayResult(resultElementId, NaN, detailElementId, "Invalid Pay Period End Date.");
+                return;
+            }
+
+            const year = payPeriodEndDate.getFullYear();
+            const month_zero_indexed = payPeriodEndDate.getMonth(); // 0 for Jan, 1 for Feb, ..., 11 for Dec
+            const dayOfMonth = payPeriodEndDate.getDate();
+
+            // Full months passed before the current month of the pay period end date
+            const fullMonthsPassed = month_zero_indexed;
+
+            // Calculate fraction for the current month
+            const daysInCurrentMonth = getDaysInMonth(year, month_zero_indexed);
+            const fractionOfMonth = dayOfMonth / daysInCurrentMonth;
+            const roundedFractionOfMonth = Math.round(fractionOfMonth * 100) / 100;
+
+            const totalMonthsDecimal = fullMonthsPassed + roundedFractionOfMonth;
+
+            if (totalMonthsDecimal <= 0) {
+                displayResult(resultElementId, NaN, detailElementId, "Calculated months passed must be greater than 0. Check the date.");
+                return;
+            }
+
+            const averageMonthlyIncome = ytdIncome / totalMonthsDecimal;
+
+            const detailText = `Calculation based on: ${fullMonthsPassed} full months + ${dayOfMonth}/${daysInCurrentMonth} days (${roundedFractionOfMonth.toFixed(2)}) = ${totalMonthsDecimal.toFixed(2)} total months.`;
+            displayResult(resultElementId, averageMonthlyIncome, detailElementId, detailText);
+        }
+
+    </script>
+</body>
+</html>
